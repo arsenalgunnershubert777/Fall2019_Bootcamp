@@ -9,11 +9,12 @@ var fs = require('fs'),
     Listing = require('./ListingSchema.js'), 
     config = require('./config');
 
-var listingData;
+
 /* Connect to your database using mongoose - remember to keep your key secret*/
 //see https://mongoosejs.com/docs/connections.html
 //See https://docs.atlas.mongodb.com/driver-connection/
 mongoose.connect(config.db.uri, { useNewUrlParser: true });
+executeAsyncTask();
 
 /* 
   Instantiate a mongoose model for each listing object in the JSON file, 
@@ -25,29 +26,44 @@ mongoose.connect(config.db.uri, { useNewUrlParser: true });
 
 
 //read file into array
+function read() {
+    return new Promise((resolve, reject) => {
+        fs.readFile('listings.json', "utf8", (err, data) => {
+            if (err) reject(err);
+            else resolve(data);
+        });
+    });
+}
+
+async function executeAsyncTask() {
+    const listingDataUnParsed = await read().catch((err) => {
+        throw err
+    });
+    const listingData = JSON.parse(listingDataUnParsed);
+    listingData.entries.forEach(function (listing) {
+
+        new Listing({
+            name: listing.name,
+            code: listing.code,
+            coordinates: listing.coordinates,
+            address: listing.address,
+            created_at: listing.created_at,
+            updated_at: listing.updated_at
+        }).save(function (err) {
+            if (err) throw err;
+        });
+
+    });
+    return;
+}
+
+
+
 //for each
     //save to database
 
-fs.readFile('listings.json', 'utf8', function (err, data) {
-    /*
-      This callback function should save the data in the listingData variable, 
-      then start the server. 
-      HINT: Check out this resource on fs.readFile
-      //https://nodejs.org/api/fs.html#fs_fs_readfile_path_options_callback
-      HINT: Read up on JSON parsing Node.js
-     */
 
 
-
-    //Check for errors
-    if (err) throw err;
-
-
-    //Save the sate in the listingData variable already defined
-    listingData = JSON.parse(data);
-
-
-});
 
 /*  
   Check to see if it works: Once you've written + run the script, check out your MongoLab database to ensure that 
